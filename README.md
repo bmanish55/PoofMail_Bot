@@ -49,7 +49,7 @@ The bot uses the [mail.tm API](https://api.mail.tm/) as its temporary-mail provi
 | Configuration | `python-dotenv` | Loads `BOT_TOKEN` and optional settings from `.env` |
 | Runtime | Python 3.10+ | Runs the bot and its background polling job |
 
-For Vercel deployment, PoofMail additionally uses Flask-compatible Python functions and Supabase REST API storage. The original long-polling mode remains available through `python bot.py`; the Vercel mode uses [`api/webhook.py`](./api/webhook.py) and [`api/cron.py`](./api/cron.py).
+For Vercel deployment, PoofMail additionally uses Vercel-compatible Python HTTP handlers and Supabase REST API storage. The original long-polling mode remains available through `python bot.py`; the Vercel mode uses [`api/webhook.py`](./api/webhook.py) and [`api/cron.py`](./api/cron.py).
 
 ---
 

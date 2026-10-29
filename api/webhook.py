@@ -1,26 +1,33 @@
+import json
 import logging
-
-from flask import Flask, jsonify, request
+from http.server import BaseHTTPRequestHandler
 
 from serverless import handle
 
-app = Flask(__name__)
 log = logging.getLogger(__name__)
 
 
-@app.get("/")
-def health():
-    return jsonify({"ok": True, "service": "PoofMail Telegram webhook"})
+class handler(BaseHTTPRequestHandler):
+    def _respond(self, status, payload):
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
+    def do_GET(self):
+        self._respond(200, {"ok": True, "service": "PoofMail Telegram webhook"})
 
-@app.post("/")
-def webhook():
-    try:
-        update = request.get_json(silent=True)
-        if not isinstance(update, dict):
-            return jsonify({"ok": False, "error": "invalid Telegram update"}), 400
-        handle(update)
-        return jsonify({"ok": True})
-    except Exception:
-        log.exception("Telegram webhook failed")
-        return jsonify({"ok": False}), 500
+    def do_POST(self):
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            update = json.loads(self.rfile.read(length))
+            if not isinstance(update, dict):
+                self._respond(400, {"ok": False, "error": "invalid Telegram update"})
+                return
+            handle(update)
+            self._respond(200, {"ok": True})
+        except Exception:
+            log.exception("Telegram webhook failed")
+            self._respond(500, {"ok": False})

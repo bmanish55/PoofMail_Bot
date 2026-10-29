@@ -1,16 +1,23 @@
+import json
 import os
-
-from flask import Flask, jsonify, request
+from http.server import BaseHTTPRequestHandler
 
 from serverless import poll_users
 
-app = Flask(__name__)
 
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        expected = os.environ.get("CRON_SECRET")
+        if expected and self.headers.get("Authorization") != f"Bearer {expected}":
+            self._respond(401, {"ok": False, "error": "unauthorized"})
+            return
+        poll_users()
+        self._respond(200, {"ok": True})
 
-@app.get("/")
-def cron():
-    expected = os.environ.get("CRON_SECRET")
-    if expected and request.headers.get("Authorization") != f"Bearer {expected}":
-        return jsonify({"ok": False, "error": "unauthorized"}), 401
-    poll_users()
-    return jsonify({"ok": True})
+    def _respond(self, status, payload):
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
