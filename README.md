@@ -271,6 +271,8 @@ Register it with Telegram:
 https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://your-project.vercel.app/api/webhook
 ```
 
+You must perform this registration after the first deployment; Vercel does not register a Telegram webhook automatically. Opening `https://your-project.vercel.app/` in a browser should return a small JSON health response. Telegram updates are sent to `/api/webhook`, not to the root URL.
+
 On the Vercel Hobby plan, automatic Cron jobs more frequent than once per day are not available. This project therefore does not configure a Cron job by default. Users should tap **Check Inbox** to fetch messages immediately. The `/api/cron` endpoint remains available for a future paid Vercel plan or an external scheduler.
 
 To confirm the webhook:
