@@ -4,14 +4,33 @@ import re
 import secrets
 import string
 import time
-
-import httpx
+import json
+from urllib.error import HTTPError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 MAIL_API = "https://api.mail.tm"
 TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+
+
+class APIError(Exception):
+    def __init__(self, status_code, message):
+        super().__init__(message)
+        self.response = type("Response", (), {"status_code": status_code})()
+
+
+def request_json(method, url, headers=None, payload=None):
+    body = json.dumps(payload).encode("utf-8") if payload is not None else None
+    request = Request(url, data=body, headers=headers or {}, method=method)
+    try:
+        with urlopen(request, timeout=15) as response:
+            content = response.read()
+            return json.loads(content) if content else None
+    except HTTPError as error:
+        raise APIError(error.code, error.read().decode("utf-8", errors="replace")) from error
 
 
 def supabase(method, table, **kwargs):
@@ -21,15 +40,15 @@ def supabase(method, table, **kwargs):
         "Content-Type": "application/json",
     }
     headers.update(kwargs.pop("headers", {}))
-    response = httpx.request(method, f"{SUPABASE_URL}/rest/v1/{table}", headers=headers, timeout=15, **kwargs)
-    response.raise_for_status()
-    return response.json() if response.content else None
+    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    params = kwargs.pop("params", {})
+    if params:
+        url += "?" + urlencode(params)
+    return request_json(method, url, headers, kwargs.pop("json", None))
 
 
 def telegram(method, **kwargs):
-    response = httpx.post(f"{TELEGRAM_API}/{method}", timeout=15, **kwargs)
-    response.raise_for_status()
-    data = response.json()
+    data = request_json("POST", f"{TELEGRAM_API}/{method}", {"Content-Type": "application/json"}, kwargs.get("json"))
     if not data.get("ok"):
         raise RuntimeError(data.get("description", "Telegram API request failed"))
     return data.get("result")
@@ -37,9 +56,9 @@ def telegram(method, **kwargs):
 
 def mail_api(method, path, token=None, **kwargs):
     headers = {"Authorization": f"Bearer {token}"} if token else {}
-    response = httpx.request(method, MAIL_API + path, headers=headers, timeout=15, **kwargs)
-    response.raise_for_status()
-    return response.json() if response.content else None
+    if "json" in kwargs:
+        headers["Content-Type"] = "application/json"
+    return request_json(method, MAIL_API + path, headers, kwargs.get("json"))
 
 
 def user(uid):
@@ -87,7 +106,7 @@ def all_users():
 def user_api(value, method, path, **kwargs):
     try:
         return mail_api(method, path, value["token"], **kwargs)
-    except httpx.HTTPStatusError as error:
+    except APIError as error:
         if error.response.status_code != 401:
             raise
         token = mail_api(
@@ -189,7 +208,7 @@ def create_mailbox(chat_id, uid, query=None):
         try:
             account = user_api(previous, "GET", "/me")
             user_api(previous, "DELETE", f"/accounts/{account['id']}")
-        except httpx.HTTPError:
+        except APIError:
             pass
     save_user({"user_id": uid, "chat_id": chat_id, "address": address, "password": password, "token": token, "created_at": time.time()})
     menu(chat_id, uid, query)
@@ -264,6 +283,6 @@ def poll_users():
                 rows.append([button("📥 Inbox", "inbox")])
                 send(value["chat_id"], text, keyboard(rows))
                 mark_seen(value["user_id"], message["id"])
-        except httpx.HTTPStatusError as error:
+        except APIError as error:
             if error.response.status_code in (401, 404):
                 delete_user(value["user_id"])
