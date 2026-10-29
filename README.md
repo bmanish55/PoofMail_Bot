@@ -49,6 +49,8 @@ The bot uses the [mail.tm API](https://api.mail.tm/) as its temporary-mail provi
 | Configuration | `python-dotenv` | Loads `BOT_TOKEN` and optional settings from `.env` |
 | Runtime | Python 3.10+ | Runs the bot and its background polling job |
 
+For Vercel deployment, PoofMail additionally uses Flask-compatible Python functions and Supabase REST API storage. The original long-polling mode remains available through `python app.py`; the Vercel mode uses [`api/webhook.py`](./api/webhook.py) and [`api/cron.py`](./api/cron.py).
+
 ---
 
 ## 🏗️ Architecture
@@ -213,6 +215,71 @@ python app.py
 ```
 
 The bot uses Telegram long polling, so keep the process running. On startup it loads saved mailboxes from SQLite and registers the Telegram command menu.
+
+---
+
+## ☁️ Deploying on Vercel
+
+The Vercel deployment uses Telegram webhooks instead of long polling:
+
+```text
+Telegram ──► /api/webhook ──► Supabase
+                                  ▲
+Vercel Cron ──► /api/cron ────────┘
+                                  │
+                                  ▼
+                              mail.tm API
+```
+
+### 1. Create the Supabase database
+
+Create a Supabase project, open the SQL Editor, and run [`supabase_schema.sql`](./supabase_schema.sql). The Vercel functions use the Supabase service-role key server-side; never expose this key in browser code or commit it to Git.
+
+### 2. Add Vercel environment variables
+
+Configure these variables for Production, Preview, and Development as appropriate:
+
+```env
+BOT_TOKEN=your_telegram_bot_token
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your_supabase_service_role_key
+CRON_SECRET=use_a_long_random_value
+```
+
+`CRON_SECRET` protects the inbox polling endpoint from unauthorized manual calls. Vercel automatically sends it when invoking a configured Cron function.
+
+### 3. Deploy
+
+Install the Vercel CLI and deploy from the project directory:
+
+```bash
+npm install -g vercel
+vercel login
+vercel
+vercel --prod
+```
+
+After deployment, the webhook URL will be:
+
+```text
+https://your-project.vercel.app/api/webhook
+```
+
+Register it with Telegram:
+
+```text
+https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://your-project.vercel.app/api/webhook
+```
+
+The configured Vercel Cron job calls `/api/cron` every five minutes and forwards newly received messages. This is not real-time polling; users can also tap **Check Inbox** to fetch messages immediately.
+
+To confirm the webhook:
+
+```text
+https://api.telegram.org/bot<BOT_TOKEN>/getWebhookInfo
+```
+
+The Vercel implementation stores mailbox credentials and seen message IDs in Supabase. It does not use `tempmail.db`.
 
 ---
 
