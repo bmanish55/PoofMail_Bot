@@ -10,6 +10,8 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
+ADMIN_NAME = "Mãnish Bhavar"
+ADMIN_USERNAME = "B_Manishh"
 MAIL_API = "https://api.mail.tm"
 TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
@@ -161,6 +163,21 @@ def button(text, callback_data=None, copy_text=None):
     return value
 
 
+def command_menu():
+    telegram(
+        "setMyCommands",
+        json={
+            "commands": [
+                {"command": "start", "description": "Open the menu"},
+                {"command": "new", "description": "Generate a new temp email"},
+                {"command": "inbox", "description": "Check your inbox"},
+                {"command": "delete", "description": "Delete your mailbox"},
+                {"command": "contact_admin", "description": "Contact the admin"},
+            ]
+        },
+    )
+
+
 def send(chat_id, text, reply_markup=None):
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
     if reply_markup:
@@ -180,17 +197,22 @@ def mailbox_keyboard(address):
         [button("📋 Copy Address", copy_text=address)],
         [button("📥 Check Inbox", "inbox")],
         [button("♻️ New Address", "new"), button("🗑 Delete", "delete")],
+        [button("👤 Contact Admin", "contact_admin")],
     ])
 
 
 def menu(chat_id, uid, query=None):
+    command_menu()
     value = user(uid)
     if value:
         text = f"✨ <b>Your temporary email</b>\n\n<code>{value['address']}</code>\n\nTap the address to copy. New mail and OTPs arrive here automatically."
         markup = mailbox_keyboard(value["address"])
     else:
         text = "👻 <b>Welcome to PoofMail</b>\n\nGet a disposable email in one tap and receive OTPs right here in Telegram.\n\n• No signup\n• OTP auto-detected\n• Delete anytime"
-        markup = keyboard([[button("✨ Generate Email", "new")]])
+        markup = keyboard([
+            [button("✨ Generate Email", "new")],
+            [button("👤 Contact Admin", "contact_admin")],
+        ])
     if query:
         edit(query, text, markup)
     else:
@@ -245,6 +267,14 @@ def handle(update):
         elif data == "delete":
             delete_user(uid)
             edit(query, "🗑 <b>Mailbox deleted.</b>\n\nTap below to create a fresh one.", keyboard([[button("✨ Generate Email", "new")]]))
+        elif data == "contact_admin":
+            contact_message = (
+                f"👤 <b>Contact Admin</b>\n\n"
+                f"This bot was created by <b>{ADMIN_NAME}</b>.\n"
+                "For any query or suggestion, you can message the admin directly:\n\n"
+                f"💬 <a href=\"https://t.me/{ADMIN_USERNAME}\">@{ADMIN_USERNAME}</a>"
+            )
+            edit(query, contact_message, mailbox_keyboard(user(uid)["address"]) if user(uid) else keyboard([[button("✨ Generate Email", "new")]]))
         elif data.startswith("read:"):
             value = user(uid)
             message = user_api(value, "GET", f"/messages/{data[5:]}")
@@ -257,9 +287,18 @@ def handle(update):
     chat_id = message.get("chat", {}).get("id")
     uid = message.get("from", {}).get("id")
     command = (message.get("text") or "").split("@")[0].split()[0]
-    if command in ("/start", "/new"):
+    if command in ("/start", "/new", "/contact_admin"):
         if command == "/new":
             create_mailbox(chat_id, uid)
+        elif command == "/contact_admin":
+            command_menu()
+            send(
+                chat_id,
+                f"👤 <b>Contact Admin</b>\n\nThis bot was created by <b>{ADMIN_NAME}</b>.\n"
+                f"For any query or suggestion, you can message the admin directly:\n\n"
+                f"💬 <a href=\"https://t.me/{ADMIN_USERNAME}\">@{ADMIN_USERNAME}</a>",
+                mailbox_keyboard(user(uid)["address"]) if user(uid) else keyboard([[button("✨ Generate Email", "new")]]),
+            )
         else:
             menu(chat_id, uid)
     elif command == "/inbox":

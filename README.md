@@ -293,8 +293,9 @@ The Vercel implementation stores mailbox credentials and seen message IDs in Sup
 | `/new` | Generate a new temporary address |
 | `/inbox` | Fetch and display up to 10 latest messages |
 | `/delete` | Delete the active mailbox |
+| `/contact_admin` | Open the admin contact message |
 
-Inline buttons provide address copying, inbox refresh, opening a message, OTP copying, mailbox replacement, message deletion, and navigation back to the menu.
+Inline buttons provide address copying, inbox refresh, opening a message, OTP copying, mailbox replacement, message deletion, admin contact, and navigation back to the menu.
 
 ---
 

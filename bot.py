@@ -34,6 +34,8 @@ log = logging.getLogger("tempmail")
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 BOT_NAME = "PoofMail"  # change to your final name
+ADMIN_NAME = "Mãnish Bhavar"
+ADMIN_USERNAME = "B_Manishh"
 API = "https://api.mail.tm"
 DB_PATH = os.getenv("DB_PATH", "tempmail.db")
 POLL_SECONDS = 20
@@ -169,7 +171,10 @@ def mail_text(msg: dict, header: str = "📩 <b>Email</b>") -> tuple[str, str | 
 # ---------- Keyboards ----------
 
 def start_kb() -> Markup:
-    return Markup([[Btn("✨ Generate Email", callback_data="new")]])
+    return Markup([
+        [Btn("✨ Generate Email", callback_data="new")],
+        [Btn("👤 Contact Admin", callback_data="contact_admin")],
+    ])
 
 
 def mailbox_kb(address: str) -> Markup:
@@ -177,6 +182,7 @@ def mailbox_kb(address: str) -> Markup:
         [Btn("📋 Copy Address", copy_text=CopyTextButton(text=address))],
         [Btn("📥 Check Inbox", callback_data="inbox")],
         [Btn("♻️ New Address", callback_data="new"), Btn("🗑 Delete", callback_data="delete")],
+        [Btn("👤 Contact Admin", callback_data="contact_admin")],
     ])
 
 
@@ -217,6 +223,17 @@ async def show_menu(update: Update):
             "• No signup\n• OTP auto-detected\n• Delete anytime",
             start_kb(),
         )
+
+
+async def contact_admin(update: Update):
+    await show(
+        update,
+        f"👤 <b>Contact Admin</b>\n\n"
+        f"This bot was created by <b>{html.escape(ADMIN_NAME)}</b>.\n"
+        "For any query or suggestion, you can message the admin directly:\n\n"
+        f"💬 <a href=\"https://t.me/{ADMIN_USERNAME}\">@{ADMIN_USERNAME}</a>",
+        kb_for(update.effective_user.id),
+    )
 
 
 async def new_mailbox(update: Update):
@@ -344,6 +361,10 @@ async def cmd_delete(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await delete_mailbox(update)
 
 
+async def cmd_contact_admin(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    await contact_admin(update)
+
+
 async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
@@ -356,6 +377,8 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await show_menu(update)
     elif data == "delete":
         await delete_mailbox(update)
+    elif data == "contact_admin":
+        await contact_admin(update)
     elif data.startswith("read:"):
         await read_mail(update, data[5:])
     elif data.startswith("del:"):
@@ -407,6 +430,7 @@ async def post_init(app: Application):
         BotCommand("new", "Generate a new temp email"),
         BotCommand("inbox", "Check your inbox"),
         BotCommand("delete", "Delete your mailbox"),
+        BotCommand("contact_admin", "Contact the admin"),
     ])
 
 
@@ -416,6 +440,7 @@ def main():
     app.add_handler(CommandHandler("new", cmd_new))
     app.add_handler(CommandHandler("inbox", cmd_inbox))
     app.add_handler(CommandHandler("delete", cmd_delete))
+    app.add_handler(CommandHandler("contact_admin", cmd_contact_admin))
     app.add_handler(CallbackQueryHandler(on_button))
     app.job_queue.run_repeating(poll, interval=POLL_SECONDS, first=POLL_SECONDS)
     app.run_polling()
