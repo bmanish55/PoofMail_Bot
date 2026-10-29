@@ -49,7 +49,7 @@ The bot uses the [mail.tm API](https://api.mail.tm/) as its temporary-mail provi
 | Configuration | `python-dotenv` | Loads `BOT_TOKEN` and optional settings from `.env` |
 | Runtime | Python 3.10+ | Runs the bot and its background polling job |
 
-For Vercel deployment, PoofMail additionally uses Flask-compatible Python functions and Supabase REST API storage. The original long-polling mode remains available through `python app.py`; the Vercel mode uses [`api/webhook.py`](./api/webhook.py) and [`api/cron.py`](./api/cron.py).
+For Vercel deployment, PoofMail additionally uses Flask-compatible Python functions and Supabase REST API storage. The original long-polling mode remains available through `python bot.py`; the Vercel mode uses [`api/webhook.py`](./api/webhook.py) and [`api/cron.py`](./api/cron.py).
 
 ---
 
@@ -63,7 +63,7 @@ For Vercel deployment, PoofMail additionally uses Flask-compatible Python functi
            │ Telegram Bot API
            ▼
 ┌────────────────────────────────────────────┐
-│              PoofMail (app.py)              │
+│              PoofMail (serverless)           │
 │                                            │
 │  Command handlers  ·  Callback handlers   │
 │  Mailbox lifecycle · OTP/message formatter │
@@ -211,7 +211,7 @@ DB_PATH=tempmail.db
 ### 4. Run the bot
 
 ```bash
-python app.py
+python bot.py
 ```
 
 The bot uses Telegram long polling, so keep the process running. On startup it loads saved mailboxes from SQLite and registers the Telegram command menu.
@@ -325,7 +325,7 @@ Inline buttons provide address copying, inbox refresh, opening a message, OTP co
 
 ```text
 poofmail/
-├── app.py             # Telegram bot, mail.tm client, persistence, and poller
+├── bot.py             # Local long-polling bot, mail.tm client, persistence, and poller
 ├── env.example        # Safe configuration template
 ├── requirements.txt   # Python dependencies
 ├── .gitignore         # Secrets, database, and runtime-file exclusions
