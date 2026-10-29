@@ -327,6 +327,7 @@ Inline buttons provide address copying, inbox refresh, opening a message, OTP co
 poofmail/
 ├── bot.py             # Local long-polling bot, mail.tm client, persistence, and poller
 ├── env.example        # Safe configuration template
+├── pyproject.toml      # Vercel Python entrypoint configuration
 ├── requirements.txt   # Python dependencies
 ├── .gitignore         # Secrets, database, and runtime-file exclusions
 └── tempmail.db        # Generated SQLite data (not committed)
