@@ -271,7 +271,7 @@ Register it with Telegram:
 https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://your-project.vercel.app/api/webhook
 ```
 
-The configured Vercel Cron job calls `/api/cron` every five minutes and forwards newly received messages. This is not real-time polling; users can also tap **Check Inbox** to fetch messages immediately.
+On the Vercel Hobby plan, automatic Cron jobs more frequent than once per day are not available. This project therefore does not configure a Cron job by default. Users should tap **Check Inbox** to fetch messages immediately. The `/api/cron` endpoint remains available for a future paid Vercel plan or an external scheduler.
 
 To confirm the webhook:
 
