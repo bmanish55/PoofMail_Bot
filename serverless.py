@@ -274,7 +274,7 @@ def handle(update):
                 "For any query or suggestion, you can message the admin directly:\n\n"
                 f"💬 <a href=\"https://t.me/{ADMIN_USERNAME}\">@{ADMIN_USERNAME}</a>"
             )
-            edit(query, contact_message, mailbox_keyboard(user(uid)["address"]) if user(uid) else keyboard([[button("✨ Generate Email", "new")]]))
+            edit(query, contact_message)
         elif data.startswith("read:"):
             value = user(uid)
             message = user_api(value, "GET", f"/messages/{data[5:]}")
@@ -297,7 +297,6 @@ def handle(update):
                 f"👤 <b>Contact Admin</b>\n\nThis bot was created by <b>{ADMIN_NAME}</b>.\n"
                 f"For any query or suggestion, you can message the admin directly:\n\n"
                 f"💬 <a href=\"https://t.me/{ADMIN_USERNAME}\">@{ADMIN_USERNAME}</a>",
-                mailbox_keyboard(user(uid)["address"]) if user(uid) else keyboard([[button("✨ Generate Email", "new")]]),
             )
         else:
             menu(chat_id, uid)

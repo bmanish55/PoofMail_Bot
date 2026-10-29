@@ -232,7 +232,6 @@ async def contact_admin(update: Update):
         f"This bot was created by <b>{html.escape(ADMIN_NAME)}</b>.\n"
         "For any query or suggestion, you can message the admin directly:\n\n"
         f"💬 <a href=\"https://t.me/{ADMIN_USERNAME}\">@{ADMIN_USERNAME}</a>",
-        kb_for(update.effective_user.id),
     )
 
 
